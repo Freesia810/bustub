@@ -61,10 +61,38 @@ auto Trie::Put(std::string_view key, T value) const -> Trie {
 }
 
 auto Trie::Remove(std::string_view key) const -> Trie {
-  throw NotImplementedException("Trie::Remove is not implemented.");
+  // throw NotImplementedException("Trie::Remove is not implemented.");
 
   // You should walk through the trie and remove nodes if necessary. If the node doesn't contain a value any more,
   // you should convert it to `TrieNode`. If a node doesn't have children any more, you should remove it.
+  auto curTrieNode = root_;
+  bool isFound = true;
+  std::vector<std::shared_ptr<const TrieNode>> nodes;
+  for(auto c : key){
+    auto iter = curTrieNode->children_.find(c);
+    if(iter == curTrieNode->children_.end()){
+      isFound = false;
+      break;
+    }
+    else{
+      nodes.push_back(curTrieNode);
+      curTrieNode = iter->second;
+    }
+  }
+  if(isFound){
+    auto valueNode = nodes.back();
+    if(valueNode->children_.size()){
+      auto children = valueNode->children_;
+      auto parent = nodes.at(nodes.size() - 2);
+      parent->children_[key.back()] = std::make_shared<const TrieNode>(children);
+    }
+    else{
+      for(auto i = nodes.size() - 2; i >= 0; i--){
+        nodes.at(i)->children_.erase(key[i]);
+      }
+    }
+  }
+  return root_;
 }
 
 // Below are explicit instantiation of template functions.
