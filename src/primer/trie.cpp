@@ -12,6 +12,20 @@ auto Trie::Get(std::string_view key) const -> const T * {
   // nullptr. After you find the node, you should use `dynamic_cast` to cast it to `const TrieNodeWithValue<T> *`. If
   // dynamic_cast returns `nullptr`, it means the type of the value is mismatched, and you should return nullptr.
   // Otherwise, return the value.
+  auto curTrieNode = root_;
+  for(auto c : key){
+    auto iter = curTrieNode->children_.find(c);
+    if(iter == curTrieNode->children_.end()){
+      return nullptr;
+    }
+    curTrieNode = iter->second;
+  }
+
+  const TrieNodeWithValue<T>* res = dynamic_cast<const TrieNodeWithValue<T>*>(curTrieNode);
+  if(res == nullptr){
+    return nullptr;
+  }
+  return res->value_.get();
 }
 
 template <class T>
