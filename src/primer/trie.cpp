@@ -2,6 +2,8 @@
 #include <string_view>
 #include "common/exception.h"
 
+#include <iostream>
+
 namespace bustub {
 
 template <class T>
@@ -33,7 +35,46 @@ auto Trie::Put(std::string_view key, T value) const -> Trie {
 
   // You should walk through the trie and create new nodes if necessary. If the node corresponding to the key already
   // exists, you should create a new `TrieNodeWithValue`.
-  
+  std::shared_ptr<TrieNode> resTrieRoot;
+  if(root_ == nullptr){
+    resTrieRoot = std::make_shared<TrieNode>();
+  }
+  else if(key.size() == 0){
+    resTrieRoot = std::make_shared<TrieNodeWithValue<T>>(std::move(root_->children_), std::make_shared<T>(std::move(value)));
+  }
+  else{
+    resTrieRoot = std::shared_ptr<TrieNode>(std::move(root_->Clone()));
+  }
+  std::shared_ptr<TrieNode> curTrieNode = resTrieRoot;
+  for(size_t i = 0; i < key.size(); i++){
+    auto c = key.at(i);
+    auto iter = curTrieNode->children_.find(c);
+    if(i == key.size() - 1){
+      std::shared_ptr<TrieNodeWithValue<T>> newValueNode;
+      if(iter == curTrieNode->children_.end()){
+        newValueNode = std::make_shared<TrieNodeWithValue<T>>(std::make_shared<T>(std::move(value)));
+        curTrieNode->children_.insert(std::pair<char, std::shared_ptr<TrieNode>>(c, std::move(newValueNode)));
+      }
+      else{
+        newValueNode = std::make_shared<TrieNodeWithValue<T>>(std::move(iter->second->children_), std::make_shared<T>(std::move(value)));
+        curTrieNode->children_.erase(c);
+        curTrieNode->children_.insert(std::pair<char, std::shared_ptr<TrieNode>>(c, std::move(newValueNode)));
+      }
+    }
+    else{
+      std::shared_ptr<TrieNode> newChildNode;
+      if(iter == curTrieNode->children_.end()){
+        newChildNode = std::make_shared<TrieNode>();
+      }
+      else{
+        newChildNode = std::shared_ptr<TrieNode>(std::move(iter->second->Clone()));
+        curTrieNode->children_.erase(c);
+      }
+      curTrieNode->children_.insert(std::pair<char, std::shared_ptr<TrieNode>>(c, newChildNode));
+      curTrieNode = std::move(newChildNode);
+    }
+  }
+  return Trie(resTrieRoot);
 }
 
 auto Trie::Remove(std::string_view key) const -> Trie {
