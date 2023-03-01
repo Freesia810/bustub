@@ -13,6 +13,9 @@ auto Trie::Get(std::string_view key) const -> const T * {
   // dynamic_cast returns `nullptr`, it means the type of the value is mismatched, and you should return nullptr.
   // Otherwise, return the value.
   auto curTrieNode = root_;
+  if(root_ == nullptr){
+    return nullptr;
+  }
   for(auto c : key){
     auto iter = curTrieNode->children_.find(c);
     if(iter == curTrieNode->children_.end()){
@@ -78,10 +81,91 @@ auto Trie::Put(std::string_view key, T value) const -> Trie {
 }
 
 auto Trie::Remove(std::string_view key) const -> Trie {
-  throw NotImplementedException("Trie::Remove is not implemented.");
-
   // You should walk through the trie and remove nodes if necessary. If the node doesn't contain a value any more,
   // you should convert it to `TrieNode`. If a node doesn't have children any more, you should remove it.
+  std::shared_ptr<TrieNode> resTrieRoot;
+  if(root_ == nullptr){
+    return Trie();
+  }
+  else if(key.size() == 0){
+    if(root_->is_value_node_){
+      resTrieRoot = std::make_shared<TrieNode>(std::move(root_->children_));
+      return Trie(resTrieRoot);
+    }
+    else{
+      return *this;
+    }
+  }
+
+
+  std::shared_ptr<const TrieNode> tmp = root_;
+  std::vector<std::shared_ptr<const TrieNode>> trieNodes;
+  trieNodes.push_back(tmp);
+  bool isValid = true;
+  for(auto c : key){
+    auto iter = tmp->children_.find(c);
+    if(iter == tmp->children_.end()){
+      isValid = false;
+      break;
+    }
+    else{
+      trieNodes.push_back(iter->second);
+      tmp = iter->second;
+    }
+  }
+
+  if(!isValid){
+    return *this;
+  }
+  if(trieNodes.back()->children_.size() == 0){
+    int finalIndex = -1;
+    for(size_t i = 0; i < trieNodes.size()-1; i++){
+      if(trieNodes[i]->is_value_node_ || trieNodes[i]->children_.size() > 1){
+        finalIndex = i;
+      }
+    }
+    if(finalIndex == -1){
+      return Trie();
+    }
+    else{
+      resTrieRoot = std::shared_ptr<TrieNode>(std::move(root_->Clone()));
+      std::shared_ptr<TrieNode> curTrieNode = resTrieRoot;
+      for(size_t i = 0; i <= (size_t)finalIndex; i++){
+        auto c = key.at(i);
+        auto iter = curTrieNode->children_.find(c);
+        if(i == (size_t)finalIndex){
+          curTrieNode->children_.erase(c);
+        }
+        else{
+          std::shared_ptr<TrieNode> newChildNode = std::shared_ptr<TrieNode>(std::move(iter->second->Clone()));
+          curTrieNode->children_.erase(c);
+          curTrieNode->children_.insert(std::pair<char, std::shared_ptr<TrieNode>>(c, newChildNode));
+          curTrieNode = std::move(newChildNode);
+        }
+      }
+
+      return Trie(resTrieRoot);
+    }
+  }
+  else{
+    resTrieRoot = std::shared_ptr<TrieNode>(std::move(root_->Clone()));
+    std::shared_ptr<TrieNode> curTrieNode = resTrieRoot;
+    for(size_t i = 0; i < key.size(); i++){
+      auto c = key.at(i);
+      std::shared_ptr<TrieNode> newChildNode;
+      auto iter = curTrieNode->children_.find(c);
+      if(i == key.size() - 1){
+        newChildNode = std::make_shared<TrieNode>(std::move(iter->second->children_));
+      }
+      else{
+        newChildNode = std::shared_ptr<TrieNode>(std::move(iter->second->Clone()));
+      }
+      curTrieNode->children_.erase(c);
+      curTrieNode->children_.insert(std::pair<char, std::shared_ptr<TrieNode>>(c, newChildNode));
+      curTrieNode = std::move(newChildNode);
+    }
+    return Trie(resTrieRoot);
+  }
 }
 
 // Below are explicit instantiation of template functions.
