@@ -40,13 +40,25 @@ class StringExpression : public AbstractExpression {
   StringExpression(AbstractExpressionRef arg, StringExpressionType expr_type)
       : AbstractExpression({std::move(arg)}, TypeId::VARCHAR), expr_type_{expr_type} {
     if (GetChildAt(0)->GetReturnType() != TypeId::VARCHAR) {
-      throw bustub::NotImplementedException("expect the first arg to be varchar");
+      throw bustub::NotImplementedException("expect the first arg to be varchar\n");
     }
   }
 
   auto Compute(const std::string &val) const -> std::string {
     // TODO(student): implement upper / lower.
-    return {};
+    std::string res = val;
+    switch (expr_type_)
+    {
+    case StringExpressionType::Lower:
+      std::transform(val.begin(), val.end(), res.begin(), ::tolower);
+      break;
+    case StringExpressionType::Upper:
+      std::transform(val.begin(), val.end(), res.begin(), ::toupper);
+      break;
+    default:
+      break;
+    }
+    return res;
   }
 
   auto Evaluate(const Tuple *tuple, const Schema &schema) const -> Value override {
